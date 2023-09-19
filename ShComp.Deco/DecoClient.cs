@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ShComp.Deco;
 
-public class DecoClient
+public sealed class DecoClient : IDisposable
 {
     private readonly UTF8Encoding _utf8 = new(false);
 
@@ -33,6 +33,12 @@ public class DecoClient
         _aes.IV = _utf8.GetBytes(aesIV);
     }
 
+    public void Dispose()
+    {
+        _rsa?.Dispose();
+        _client.Dispose();
+    }
+
     public async Task LoginAsync(string password)
     {
         var readBody = new { operation = "read" };
@@ -52,7 +58,9 @@ public class DecoClient
 
         var loginRequestBody = new { @params = new { password = encryptedPassword }, operation = "login" };
         var loginResult = await EncryptedPostAsync<LoginResult>(";stok=/login", "login", loginRequestBody);
-        _stok = loginResult!.Stok;
+        if (loginResult is not { Stok: { } stok }) throw new Exception("ログイン失敗");
+
+        _stok = stok;
     }
 
     public async Task<Device[]> GetDevicesAsync()
