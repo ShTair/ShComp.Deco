@@ -32,26 +32,9 @@ internal class DecoRestClient : IDisposable
         return JsonSerializer.Deserialize<T>(content)!;
     }
 
-    public Poster<T> WithBody<T>(T body)
+    public Task<TResult> PostAsync<TBody, TResult>(string path, string from, TBody body)
     {
-        return new Poster<T>(this, body);
-    }
-
-    public class Poster<TBody>
-    {
-        private readonly DecoRestClient _client;
-        private readonly TBody _body;
-
-        public Poster(DecoRestClient client, TBody body)
-        {
-            _client = client;
-            _body = body;
-        }
-
-        public Task<T> PostAsync<T>(string path, string from)
-        {
-            var bodyJson = JsonSerializer.Serialize(_body);
-            return _client.PostAsync<T>(path, from, bodyJson);
-        }
+        var bodyJson = JsonSerializer.Serialize(body);
+        return PostAsync<TResult>(path, from, bodyJson);
     }
 }

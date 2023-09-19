@@ -20,4 +20,17 @@ public class DecoClientTest
         using var client = new DecoClient(host);
         await client.LoginAsync(password);
     }
+
+    [Fact]
+    public async Task GetDevicesTest()
+    {
+        var host = _configuration["Host"]!;
+        var password = _configuration["Password"]!;
+
+        using var client = new DecoClient(host);
+        await client.LoginAsync(password);
+
+        var devices = await client!.GetDevicesAsync();
+        Assert.NotEmpty(devices);
+    }
 }

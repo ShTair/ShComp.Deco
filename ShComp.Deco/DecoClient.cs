@@ -7,6 +7,7 @@ namespace ShComp.Deco;
 public sealed class DecoClient : IDisposable
 {
     private readonly UTF8Encoding _utf8 = new(false);
+    private readonly string _readBody = JsonSerializer.Serialize(new { operation = "read" });
 
     private readonly DecoRestClient _client;
 
@@ -41,18 +42,16 @@ public sealed class DecoClient : IDisposable
 
     public async Task LoginAsync(string password)
     {
-        var readBody = new { operation = "read" };
-
         _passwordHash = ToXString(MD5.HashData(_utf8.GetBytes($"admin{password}")));
 
-        var passwordKey = await _client.WithBody(readBody).PostAsync<PostResult<KeysResult>>(";stok=/login", "keys");
+        var passwordKey = await _client.PostAsync<PostResult<KeysResult>>(";stok=/login", "keys", _readBody);
         string encryptedPassword;
         using (var passwordRsa = CreateRsa(passwordKey.Result!.Password!))
         {
             encryptedPassword = ToXString(passwordRsa.Encrypt(_utf8.GetBytes(password), RSAEncryptionPadding.Pkcs1));
         }
 
-        var sessionKey = await _client.WithBody(readBody).PostAsync<PostResult<SessionResult>>(";stok=/login", "auth");
+        var sessionKey = await _client.PostAsync<PostResult<SessionResult>>(";stok=/login", "auth", _readBody);
         _rsa = CreateRsa(sessionKey.Result!.Key!);
         _sequence = sessionKey.Result!.Seq;
 
@@ -65,8 +64,7 @@ public sealed class DecoClient : IDisposable
 
     public async Task<Device[]> GetDevicesAsync()
     {
-        var readBody = new { operation = "read" };
-        var result = await EncryptedPostAsync<DeviceListResult>($";stok={_stok}/admin/device", "device_list", readBody);
+        var result = await EncryptedPostAsync<DeviceListResult>($";stok={_stok}/admin/device", "device_list", _readBody);
         return result?.Devices ?? Array.Empty<Device>();
     }
 
@@ -94,10 +92,9 @@ public sealed class DecoClient : IDisposable
 
     private static byte[] FromXString(string s) => Enumerable.Range(0, s.Length / 2).Select(i => byte.Parse(s.AsSpan(i * 2, 2), System.Globalization.NumberStyles.HexNumber)).ToArray();
 
-    private async Task<T?> EncryptedPostAsync<T>(string path, string from, object body)
+    private async Task<T?> EncryptedPostAsync<T>(string path, string from, string body)
     {
-        var bodyJson = JsonSerializer.Serialize(body);
-        var encryptedBody = Convert.ToBase64String(_aes.EncryptCbc(_utf8.GetBytes(bodyJson), _aes.IV));
+        var encryptedBody = Convert.ToBase64String(_aes.EncryptCbc(_utf8.GetBytes(body), _aes.IV));
 
         var length = _sequence + encryptedBody.Length;
 
@@ -129,6 +126,12 @@ public sealed class DecoClient : IDisposable
         {
             return default;
         }
+    }
+
+    private Task<T?> EncryptedPostAsync<T>(string path, string from, object body)
+    {
+        var bodyJson = JsonSerializer.Serialize(body);
+        return EncryptedPostAsync<T>(path, from, bodyJson);
     }
 
     #endregion

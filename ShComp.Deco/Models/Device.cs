@@ -103,4 +103,6 @@ public class Device
 
     [JsonPropertyName("enable_gateway_feature")]
     public bool EnableGatewayFeature { get; set; }
+
+    public override string ToString() => $"{Mac} {InetStatus} {DeviceModel} {Nickname}";
 }
