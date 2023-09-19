@@ -1,6 +1,6 @@
 ﻿namespace ShComp.Deco.Models;
 
-internal class Device
+public class Device
 {
     [JsonPropertyName("nand_flash")]
     public bool NandFlash { get; set; }

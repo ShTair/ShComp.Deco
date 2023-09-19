@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="System.Text.Json" />
     <Using Include="System.Text.Json.Serialization" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RestSharp" Version="108.0.3" />
   </ItemGroup>
 
 </Project>

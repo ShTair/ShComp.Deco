@@ -2,7 +2,7 @@
 
 namespace ShComp.Deco.Models;
 
-internal class Client
+public class Client
 {
     [JsonPropertyName("mac")]
     public string? Mac { get; set; }

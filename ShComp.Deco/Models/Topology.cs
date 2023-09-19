@@ -1,6 +1,6 @@
 ﻿namespace ShComp.Deco.Models;
 
-internal class Topology
+public class Topology
 {
     [JsonPropertyName("auto")]
     public bool Auto { get; set; }
