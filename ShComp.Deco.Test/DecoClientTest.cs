@@ -33,17 +33,8 @@ public class DecoClientTest
     {
         using var client = await CreateAndLoginAsync();
 
-        var devices = await client!.GetDevicesAsync();
+        var devices = await client.GetDevicesAsync();
         Assert.NotEmpty(devices);
-    }
-
-    [Fact]
-    public async Task DoubleLoginTest()
-    {
-        using var client1 = await CreateAndLoginAsync();
-        using var client2 = await CreateAndLoginAsync();
-
-        await Assert.ThrowsAnyAsync<Exception>(() => client1.GetDevicesAsync());
     }
 
     [Fact]
@@ -53,5 +44,29 @@ public class DecoClientTest
 
         var clients = await client.GetClientsAsync();
         Assert.NotEmpty(clients);
+    }
+
+    [Fact]
+    public async Task GetDecoClientsTest()
+    {
+        using var client = await CreateAndLoginAsync();
+
+        var devices = await client.GetDevicesAsync();
+
+        var clients = await client.GetClientsAsync();
+        var decoClients = await client.GetClientsAsync(devices[0]!.Mac!);
+
+        Assert.NotEmpty(clients);
+        Assert.NotEmpty(decoClients);
+        Assert.NotEqual(clients.Length, decoClients.Length);
+    }
+
+    [Fact]
+    public async Task DoubleLoginTest()
+    {
+        using var client1 = await CreateAndLoginAsync();
+        using var client2 = await CreateAndLoginAsync();
+
+        await Assert.ThrowsAnyAsync<Exception>(() => client1.GetDevicesAsync());
     }
 }
