@@ -11,7 +11,6 @@ internal class DecoRestClient : IDisposable
     {
         _client = new RestClient(new Uri($"http://{host}/cgi-bin/luci/"),
             opts => opts.CookieContainer = new CookieContainer());
-        _client.AddDefaultHeader("Content-Type", "application/json");
     }
 
     public void Dispose()

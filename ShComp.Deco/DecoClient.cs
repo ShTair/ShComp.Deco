@@ -1,4 +1,6 @@
 ﻿using ShComp.Deco.Models;
+using System.Buffers;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -88,9 +90,25 @@ public sealed class DecoClient : IDisposable
         return RSA.Create(rsaParameters);
     }
 
-    private static string ToXString(byte[] buffer) => string.Concat(buffer.Select(t => t.ToString("x2")));
+    private static string ToXString(in ReadOnlySpan<byte> buffer)
+    {
+        var sb = new StringBuilder(buffer.Length * 2);
+        foreach (byte b in buffer) sb.Append(b.ToString("x2"));
+        return sb.ToString();
+    }
 
-    private static byte[] FromXString(string s) => Enumerable.Range(0, s.Length / 2).Select(i => byte.Parse(s.AsSpan(i * 2, 2), System.Globalization.NumberStyles.HexNumber)).ToArray();
+    private static byte[] FromXString(string s)
+    {
+        static int ToInt(int c) => c switch { <= 57 => c - 48, <= 70 => c - 55, _ => c - 87 };
+
+        var buffer = new byte[s.Length / 2];
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            buffer[i] = (byte)((ToInt(s[i * 2]) << 4) + ToInt(s[i * 2 + 1]));
+        }
+
+        return buffer;
+    }
 
     private async Task<T?> EncryptedPostAsync<T>(string path, string from, string body)
     {
@@ -101,21 +119,29 @@ public sealed class DecoClient : IDisposable
         var sign = $"h={_passwordHash}&s={length}";
         if (from == "login") sign = $"{_aesKeyIV}&{sign}";
 
-        string Encrypt(string source)
+        string Encrypt(in ReadOnlySpan<char> source)
         {
-            var buffer = _utf8.GetBytes(source);
-            var encrypted = _rsa!.Encrypt(buffer, RSAEncryptionPadding.Pkcs1);
-            return ToXString(encrypted);
+            var buffer1 = ArrayPool<byte>.Shared.Rent(64);
+            var span1 = buffer1.AsSpan();
+
+            var buffer2 = ArrayPool<byte>.Shared.Rent(128);
+            var span2 = buffer1.AsSpan();
+
+            try
+            {
+                var count1 = _utf8.GetBytes(source, span1);
+                var count2 = _rsa!.Encrypt(span1[..count1], span2, RSAEncryptionPadding.Pkcs1);
+                return ToXString(span2[..count2]);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer1);
+                ArrayPool<byte>.Shared.Return(buffer2);
+            }
         }
 
-        if (sign.Length > 53)
-        {
-            sign = Encrypt(sign[..53]) + Encrypt(sign[53..]);
-        }
-        else
-        {
-            sign = Encrypt(sign);
-        }
+        if (sign.Length <= 53) sign = Encrypt(sign);
+        else sign = Encrypt(sign.AsSpan(0, 53)) + Encrypt(sign.AsSpan(54));
 
         var postBody = $"sign={sign}&data={Uri.EscapeDataString(encryptedBody)}";
         var result = await _client.PostAsync<DataResult>(path, from, postBody);
