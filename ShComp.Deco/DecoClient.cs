@@ -114,8 +114,9 @@ public sealed class DecoClient : IDisposable
 
         var postBody = $"sign={sign}&data={Uri.EscapeDataString(encryptedBody)}";
         var result = await _client.PostAsync<DataResult>(path, from, postBody);
-        var data = Convert.FromBase64String(result.Data!);
+        if (string.IsNullOrEmpty(result.Data)) throw new Exception("ログインの期限切れ");
 
+        var data = Convert.FromBase64String(result.Data);
         var json = _utf8.GetString(_aes.DecryptCbc(data, _aes.IV));
         try
         {
