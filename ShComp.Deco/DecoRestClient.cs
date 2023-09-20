@@ -1,4 +1,5 @@
 ﻿using RestSharp;
+using System.Net;
 
 namespace ShComp.Deco;
 
@@ -8,7 +9,8 @@ internal class DecoRestClient : IDisposable
 
     public DecoRestClient(string host)
     {
-        _client = new RestClient(new Uri($"http://{host}/cgi-bin/luci/"));
+        _client = new RestClient(new Uri($"http://{host}/cgi-bin/luci/"),
+            opts => opts.CookieContainer = new CookieContainer());
         _client.AddDefaultHeader("Content-Type", "application/json");
     }
 
