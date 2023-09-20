@@ -29,6 +29,21 @@ internal class SessionResult
 
 internal class LoginResult
 {
+    [JsonPropertyName("logined_host")]
+    public string? LoginedHost { get; set; }
+
     [JsonPropertyName("stok")]
     public string? Stok { get; set; }
+
+    [JsonPropertyName("logined_ip")]
+    public string? LoginedIp { get; set; }
+
+    [JsonPropertyName("logined_remote")]
+    public bool? LoginedRemote { get; set; }
+
+    [JsonPropertyName("logined_mac")]
+    public string? LoginedMac { get; set; }
+
+    [JsonPropertyName("logined_user")]
+    public string? LoginedUser { get; set; }
 }
