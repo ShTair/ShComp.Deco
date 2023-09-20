@@ -101,15 +101,20 @@ public sealed class DecoClient : IDisposable
         var sign = $"h={_passwordHash}&s={length}";
         if (from == "login") sign = $"{_aesKeyIV}&{sign}";
 
-        if (sign!.Length > 53)
+        string Encrypt(string source)
         {
-            var f1 = ToXString(_rsa!.Encrypt(_utf8.GetBytes(sign[..53]), RSAEncryptionPadding.Pkcs1));
-            var f2 = ToXString(_rsa!.Encrypt(_utf8.GetBytes(sign[53..]), RSAEncryptionPadding.Pkcs1));
-            sign = f1 + f2;
+            var buffer = _utf8.GetBytes(source);
+            var encrypted = _rsa!.Encrypt(buffer, RSAEncryptionPadding.Pkcs1);
+            return ToXString(encrypted);
+        }
+
+        if (sign.Length > 53)
+        {
+            sign = Encrypt(sign[..53]) + Encrypt(sign[53..]);
         }
         else
         {
-            sign = ToXString(_rsa!.Encrypt(_utf8.GetBytes(sign), RSAEncryptionPadding.Pkcs1));
+            sign = Encrypt(sign);
         }
 
         var postBody = $"sign={sign}&data={Uri.EscapeDataString(encryptedBody)}";
