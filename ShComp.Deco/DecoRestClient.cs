@@ -3,22 +3,18 @@ using System.Net;
 
 namespace ShComp.Deco;
 
-internal class DecoRestClient : IDisposable
+internal class DecoRestClient(RestClient client) : IDisposable
 {
-    private readonly RestClient _client;
+    private readonly RestClient _client = client;
 
-    public DecoRestClient(string host)
-    {
-        _client = new RestClient(new Uri($"http://{host}/cgi-bin/luci/"),
-            opts => opts.CookieContainer = new CookieContainer());
-    }
+    public DecoRestClient(string host) : this(new RestClient(new Uri($"http://{host}/cgi-bin/luci/"), opts => opts.CookieContainer = new CookieContainer())) { }
 
     public void Dispose()
     {
         _client.Dispose();
     }
 
-    public async Task<string> PostAsync(string path, string from, string body)
+    private async Task<string> PostAsync(string path, string from, string body)
     {
         var request = new RestRequest($"{path}?form={from}");
         request.AddBody(body);
