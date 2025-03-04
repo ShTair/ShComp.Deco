@@ -20,10 +20,10 @@ internal class RsaClient : IDisposable
     private RSA? _rsa;
     private int _sequence;
 
-    public RsaClient(DecoRestClient client, string passwordHash)
+    public RsaClient(DecoRestClient client, string password)
     {
         _client = client;
-        _passwordHash = passwordHash;
+        _passwordHash = MD5.HashData(_utf8.GetBytes($"admin{password}")).ToXString();
 
         var r = new Random();
         static string Int64(Random r) => r.NextInt64(10000000000000000).ToString("0000000000000000");
