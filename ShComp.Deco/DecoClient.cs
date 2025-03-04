@@ -43,13 +43,13 @@ public sealed class DecoClient : IDisposable
 
     public async Task LoginAsync(string password)
     {
-        _passwordHash = ToXString(MD5.HashData(_utf8.GetBytes($"admin{password}")));
+        _passwordHash = MD5.HashData(_utf8.GetBytes($"admin{password}")).ToXString();
 
         var passwordKey = await _client.PostAsync<PostResult<KeysResult>>(";stok=/login", "keys", _readBody);
         string encryptedPassword;
         using (var passwordRsa = CreateRsa(passwordKey.Result!.Password!))
         {
-            encryptedPassword = ToXString(passwordRsa.Encrypt(_utf8.GetBytes(password), RSAEncryptionPadding.Pkcs1));
+            encryptedPassword = passwordRsa.Encrypt(_utf8.GetBytes(password), RSAEncryptionPadding.Pkcs1).ToXString();
         }
 
         var sessionKey = await _client.PostAsync<PostResult<SessionResult>>(";stok=/login", "auth", _readBody);
@@ -66,14 +66,14 @@ public sealed class DecoClient : IDisposable
     public async Task<Device[]> GetDevicesAsync()
     {
         var result = await EncryptedPostAsync<DeviceListResult>($";stok={_stok}/admin/device", "device_list", _readBody);
-        return result?.Devices ?? Array.Empty<Device>();
+        return result?.Devices ?? [];
     }
 
     public async Task<Client[]> GetClientsAsync(string deviceMac = "default")
     {
         var body = new { operation = "read", @params = new { device_mac = deviceMac } };
         var result = await EncryptedPostAsync<ClientListResult>($";stok={_stok}/admin/client", "client_list", body);
-        return result?.Clients ?? Array.Empty<Client>();
+        return result?.Clients ?? [];
     }
 
     #region Utils
@@ -82,31 +82,11 @@ public sealed class DecoClient : IDisposable
     {
         var rsaParameters = new RSAParameters
         {
-            Exponent = FromXString(parameters[1]),
-            Modulus = FromXString(parameters[0]),
+            Exponent = parameters[1].FromXString(),
+            Modulus = parameters[0].FromXString(),
         };
 
         return RSA.Create(rsaParameters);
-    }
-
-    private static string ToXString(in ReadOnlySpan<byte> buffer)
-    {
-        var sb = new StringBuilder(buffer.Length * 2);
-        foreach (byte b in buffer) sb.Append(b.ToString("x2"));
-        return sb.ToString();
-    }
-
-    private static byte[] FromXString(string s)
-    {
-        static int ToInt(int c) => c switch { <= 57 => c - 48, <= 70 => c - 55, _ => c - 87 };
-
-        var buffer = new byte[s.Length / 2];
-        for (int i = 0; i < buffer.Length; i++)
-        {
-            buffer[i] = (byte)((ToInt(s[i * 2]) << 4) + ToInt(s[i * 2 + 1]));
-        }
-
-        return buffer;
     }
 
     private async Task<T?> EncryptedPostAsync<T>(string path, string from, string body)
@@ -130,7 +110,7 @@ public sealed class DecoClient : IDisposable
             {
                 var count1 = _utf8.GetBytes(source, span1);
                 var count2 = _rsa!.Encrypt(span1[..count1], span2, RSAEncryptionPadding.Pkcs1);
-                return ToXString(span2[..count2]);
+                return span2[..count2].ToXString();
             }
             finally
             {
