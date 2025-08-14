@@ -56,6 +56,16 @@ public sealed class DecoClient(string host) : IDisposable
         return result?.Clients ?? [];
     }
 
+    public Task RenameDeviceAsync(string deviceId, string nickname)
+    {
+        var body = new
+        {
+            operation = "write",
+            @params = new { device_id = deviceId, nickname }
+        };
+        return _rsaClient!.EncryptedPostAsync<object>($";stok={_stok}/admin/device", "device_name", body);
+    }
+
     #region Utils
 
     private static RSA CreateRsa(string[] parameters)
