@@ -62,6 +62,17 @@ public class DecoClientTest
     }
 
     [Fact]
+    public async Task RenameDeviceTest()
+    {
+        using var client = await CreateAndLoginAsync();
+
+        var devices = await client.GetDevicesAsync();
+        var device = devices[0];
+
+        await client.RenameDeviceAsync(device.DeviceId!, device.Nickname!);
+    }
+
+    [Fact]
     public async Task DoubleLoginTest()
     {
         using var client1 = await CreateAndLoginAsync();
